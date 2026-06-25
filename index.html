@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>啤酒陳列費簽收表 - 管理系統</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --danger-color: #ef4444;
+            --edit-color: #10b981;
+            /* 店章尺寸調整：5.6 x 4.1 cm (加寬 2cm) */
+            --stamp-width: 5.6cm;
+            --stamp-height: 4.1cm;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f1f5f9;
+        }
+        .container {
+            max-width: 1000px; /* 稍微放寬螢幕預覽寬度 */
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            text-align: center;
+            color: #1e293b;
+            margin: 0 0 15px 0;
+            font-size: 28px;
+        }
+        p.subtitle {
+            text-align: center;
+            color: #64748b;
+            margin: 0 0 30px 0;
+            font-size: 16px;
+        }
+        .toolbar {
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .info-header {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            padding-right: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            background: #fff;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: center;
+            word-wrap: break-word;
+            font-size: 15px;
+        }
+        th {
+            background-color: #f8fafc;
+            font-weight: bold;
+            height: 45px;
+        }
+        
+        /* 調整欄位寬度比例 */
+        .col-name { width: 130px; }
+        .col-detail { width: auto; }
+        .col-count { width: 65px; }
+        .col-stamp { width: 6.2cm; } /* 加寬以容納 5.6cm 的蓋章空間 */
+
+        .stamp-box-container {
+            height: calc(var(--stamp-height) + 12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .stamp-box {
+            width: var(--stamp-width);
+            height: var(--stamp-height);
+            border: 1px dashed #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.8; }
+        .btn-add { background-color: var(--primary-color); }
+        .btn-edit { background-color: var(--edit-color); }
+        .btn-delete { background-color: var(--danger-color); }
+        .btn-print { background-color: #4b5563; }
+
+        input, select {
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        #modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 400px;
+        }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: bold; color: #334155; }
+        .form-group input { width: 100%; box-sizing: border-box; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+        @media print {
+            @page {
+                size: A4;
+                margin: 1cm;
+            }
+            body { 
+                background: white; 
+                margin: 0; 
+                padding: 0; 
+            }
+            .container { 
+                box-shadow: none; 
+                width: 100% !important; 
+                max-width: none !important; 
+                padding: 20px 0 !important;
+            }
+            .no-print { display: none; }
+            .col-action { display: none; }
+            h1 { font-size: 24px; }
+            p.subtitle { margin-bottom: 15px; }
+            table { 
+                width: 100% !important; 
+                border: 1.5px solid #000; 
+            }
+            tr { page-break-inside: avoid; }
+            .stamp-box { border-color: #ccc; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="no-print" style="background: #fef9c3; padding: 12px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #fde047; font-size: 14px; color: #854d0e;">
+        <strong>📏 蓋章區加寬提醒：</strong> 
+        目前店章空間已設為 5.6cm x 4.1cm。為了確保不被切掉，請在列印時將「邊界」設定為「預設」或「無」。
+    </div>
+
+    <h1><span id="displayYear">2026</span>年 <span id="displayMonth">1</span>月份 啤酒陳列費簽收單</h1>
+    <p class="subtitle">發放標準：一般陳列(1箱) / 小型陳列架(0.5箱)</p>
+
+    <!-- 工具列 -->
+    <div class="toolbar no-print">
+        <div class="toolbar-group">
+            <select id="yearSelect" onchange="updateHeaderDate()">
+                <option value="2026" selected>2026年</option>
+                <option value="2027">2027年</option>
+                <option value="2028">2028年</option>
+                <option value="2029">2029年</option>
+                <option value="2030">2030年</option>
+            </select>
+            <select id="monthSelect" onchange="updateHeaderDate()">
+                <!-- JS 生成月份 -->
+            </select>
+            <input type="date" id="issueDateInput" onchange="updateTopDate()">
+        </div>
+        <div class="toolbar-group">
+            <button class="btn btn-add" onclick="editCustomer(-1)">＋ 新增店家</button>
+            <button class="btn btn-print" onclick="window.print()">🖨️ 列印表單</button>
+        </div>
+    </div>
+
+    <!-- 表格上方的日期 -->
+    <div class="info-header">
+        發放日期：<span id="topYear">2026</span> / <span id="topMonth">01</span> / <span id="topDay">____</span>
+    </div>
+
+    <table id="customerTable">
+        <thead>
+            <tr>
+                <th class="col-name">店家名稱</th>
+                <th class="col-detail">陳列項目明細</th>
+                <th class="col-count">應領</th>
+                <th class="col-stamp">客戶店章 (5.6x4.1)</th>
+                <th class="col-action no-print">操作</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <!-- 資料由 JS 動態生成 -->
+        </tbody>
+    </table>
+</div>
+
+<!-- 編輯視窗 -->
+<div id="modal" class="no-print">
+    <div class="modal-content">
+        <h3 id="modalTitle" style="margin-top: 0; color: #1e293b;">編輯店家資料</h3>
+        <input type="hidden" id="editIndex">
+        <div class="form-group">
+            <label>店家名稱</label>
+            <input type="text" id="storeName" placeholder="請輸入店家名稱">
+        </div>
+        <div class="form-group">
+            <label>陳列項目明細</label>
+            <input type="text" id="storeDetail" placeholder="例如：端架, 一般冰箱">
+        </div>
+        <div class="modal-footer">
+            <button class="btn" style="background-color: #94a3b8;" onclick="hideModal()">取消</button>
+            <button class="btn btn-add" onclick="saveCustomer()">儲存並更新</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let customers = [
+        { name: "金英豐商店", detail: "一般冰箱 (1)" },
+        { name: "豐陽商行", detail: "小型陳列架 (1)" },
+        { name: "佑采企業有限公司", detail: "落地30箱 (1)、開放式冰箱 (1)" },
+        { name: "長圓商行", detail: "端架 (1)、一般冰箱 (1)" },
+        { name: "瑞豐便利商店", detail: "端架 (1)、一般冰箱 (1)" },
+        { name: "泓欣家庭五金商行", detail: "一般冰箱 (1)" },
+        { name: "岱鈺商店", detail: "端架 (1)" },
+        { name: "岱京商店", detail: "端架 (1)" },
+        { name: "八方客商行", detail: "端架 (1)、一般冰箱 (1)" },
+        { name: "仁宇便利商店", detail: "端架 (1)、開放式冰箱 (1)" },
+        { name: "兆翔便利商店", detail: "端架 (1)、開放式冰箱 (1)" },
+        { name: "全元商行", detail: "落地30箱 (1)" },
+        { name: "力隆商行", detail: "落地30箱 (1)、開放式冰箱 (1)" },
+        { name: "宏元商行", detail: "落地30箱 (1)" }
+    ];
+
+    function initSelectors() {
+        const monthSelect = document.getElementById('monthSelect');
+        for(let i=1; i<=12; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.innerText = i + '月';
+            if(i === 1) opt.selected = true;
+            monthSelect.appendChild(opt);
+        }
+        const defaultDate = new Date();
+        if (defaultDate.getFullYear() < 2026) defaultDate.setFullYear(2026, 0, 1);
+        document.getElementById('issueDateInput').valueAsDate = defaultDate;
+        updateTopDate();
+    }
+
+    function updateHeaderDate() {
+        const year = document.getElementById('yearSelect').value;
+        const month = document.getElementById('monthSelect').value;
+        document.getElementById('displayYear').innerText = year;
+        document.getElementById('displayMonth').innerText = month;
+    }
+
+    function updateTopDate() {
+        const dateVal = document.getElementById('issueDateInput').value;
+        if (!dateVal) {
+            document.getElementById('topYear').innerText = "____";
+            document.getElementById('topMonth').innerText = "__";
+            document.getElementById('topDay').innerText = "__";
+            return;
+        }
+        const date = new Date(dateVal);
+        document.getElementById('topYear').innerText = date.getFullYear();
+        document.getElementById('topMonth').innerText = (date.getMonth() + 1).toString().padStart(2, '0');
+        document.getElementById('topDay').innerText = date.getDate().toString().padStart(2, '0');
+    }
+
+    function calculateCrates(detail) {
+        if (!detail || detail.includes("(無項目)")) return 0;
+        let items = detail.split(/[、,，]/);
+        let total = 0;
+        items.forEach(item => {
+            const trimmed = item.trim();
+            if (trimmed === "") return;
+            total += trimmed.includes("小型陳列架") ? 0.5 : 1;
+        });
+        return total;
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        customers.forEach((c, index) => {
+            const crates = calculateCrates(c.detail);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${c.name}</td>
+                <td>${c.detail}</td>
+                <td><strong>${crates}</strong></td>
+                <td class="col-stamp">
+                    <div class="stamp-box-container">
+                        <div class="stamp-box">蓋章處</div>
+                    </div>
+                </td>
+                <td class="col-action no-print">
+                    <button class="btn btn-edit" onclick="editCustomer(${index})">編輯</button>
+                    <button class="btn btn-delete" onclick="deleteCustomer(${index})">刪除</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function editCustomer(index) {
+        const modal = document.getElementById('modal');
+        const editIndexInput = document.getElementById('editIndex');
+        const title = document.getElementById('modalTitle');
+        if (index > -1) {
+            title.innerText = "編輯店家資料";
+            document.getElementById('storeName').value = customers[index].name;
+            document.getElementById('storeDetail').value = customers[index].detail;
+            editIndexInput.value = index;
+        } else {
+            title.innerText = "新增店家資料";
+            document.getElementById('storeName').value = '';
+            document.getElementById('storeDetail').value = '';
+            editIndexInput.value = -1;
+        }
+        modal.style.display = 'flex';
+    }
+
+    function hideModal() { document.getElementById('modal').style.display = 'none'; }
+
+    function saveCustomer() {
+        const name = document.getElementById('storeName').value;
+        const detail = document.getElementById('storeDetail').value;
+        const index = parseInt(document.getElementById('editIndex').value);
+        if (!name) return alert("請輸入店家名稱");
+        if (index > -1) customers[index] = { name, detail };
+        else customers.push({ name, detail });
+        hideModal();
+        renderTable();
+    }
+
+    function deleteCustomer(index) {
+        if (confirm(`確定要刪除「${customers[index].name}」嗎？`)) {
+            customers.splice(index, 1);
+            renderTable();
+        }
+    }
+
+    window.onload = () => {
+        initSelectors();
+        renderTable();
+        updateHeaderDate();
+    };
+</script>
+
+</body>
+</html>
