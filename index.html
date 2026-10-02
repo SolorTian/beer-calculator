@@ -1,25 +1,475 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>啤酒陳列費簽收表 - 新版</title>
-  <meta http-equiv="refresh" content="0; url=https://vital-beige-1hiikwmiuj.edgeone.app/">
-  <link rel="canonical" href="https://vital-beige-1hiikwmiuj.edgeone.app/">
-  <script>
-    window.location.replace("https://vital-beige-1hiikwmiuj.edgeone.app/");
-  </script>
-  <style>
-    body{font-family:"Microsoft JhengHei",sans-serif;background:#f8fafc;color:#1e293b;display:grid;place-items:center;min-height:100vh;margin:0}
-    .card{background:#fff;padding:28px 32px;border-radius:14px;box-shadow:0 10px 30px rgba(15,23,42,.08);text-align:center;max-width:520px}
-    a{color:#2563eb;font-weight:700}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>啤酒陳列費簽收系統 v4.6</title>
+<style>
+:root {
+--primary-color: #2563eb;
+--danger-color: #ef4444;
+--edit-color: #10b981;
+--calc-color: #8b5cf6;
+--active-tab-bg: #2563eb;
+--active-tab-text: #ffffff;
+--inactive-tab-bg: #f1f5f9;
+--inactive-tab-text: #64748b;
+/* 動態變數：移除固定寬度，改由 CSS 寬度控制 */
+--stamp-height: 4.1cm;
+--row-padding: 12px;
+--font-main: 15px;
+--font-number: 22px;
+}
+
+* { box-sizing: border-box; }
+body { font-family: "Microsoft JhengHei", sans-serif; margin: 0; padding: 20px; background-color: #f8fafc; transition: background 0.3s; }
+.container { max-width: 1150px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-radius: 12px; position: relative; }
+
+h1 { text-align: center; color: #1e293b; margin: 0 0 10px 0; font-size: 30px; }
+p.subtitle { text-align: center; color: #64748b; margin: 0 0 30px 0; font-size: 16px; }
+
+.tabs-container { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+.tab-btn { padding: 10px 24px; border: none; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 16px; font-weight: bold; transition: all 0.2s; background-color: var(--inactive-tab-bg); color: var(--inactive-tab-text); }
+.tab-btn:hover { background-color: #e2e8f0; }
+.tab-btn.active { background-color: var(--active-tab-bg); color: var(--active-tab-text); box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); }
+
+.toolbar { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 10px 0; gap: 10px; flex-wrap: wrap; }
+.toolbar-group { display: flex; align-items: center; gap: 10px; }
+
+.setting-label { font-size: 14px; font-weight: bold; color: #475569; margin-left: 5px; }
+
+.info-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 18px; font-weight: bold; }
+.total-summary { color: #2563eb; background: #eff6ff; padding: 4px 12px; border-radius: 6px; border: 1px solid #bfdbfe; }
+
+table { width: 100%; border-collapse: collapse; table-layout: fixed; background: #fff; border: 2px solid #000; }
+th, td { border: 1px solid #000; padding: var(--row-padding) 10px; text-align: center; word-wrap: break-word; font-size: var(--font-main); vertical-align: middle; }
+th { background-color: #f1f5f9; font-weight: bold; height: 50px; }
+
+/* 重新精確定義欄位寬度 */
+.col-name { width: 130px; }
+.col-detail { width: auto; } /* 讓明細自動撐開 */
+.col-sales { width: 115px; }
+.col-count { width: 95px; }
+.col-stamp { width: 180px; } /* 店章欄位縮小，給明細更多空間 */
+.col-action { width: 60px; }
+
+.stamp-box-container { height: calc(var(--stamp-height) + 4px); width: 100%; display: flex; align-items: center; justify-content: center; }
+.stamp-box { width: 100%; height: var(--stamp-height); border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 11px; }
+
+.hidden { display: none; }
+
+.btn { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; color: white; display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.2s; }
+.btn:hover { opacity: 0.8; }
+.btn-add { background-color: var(--primary-color); }
+.btn-edit { background-color: var(--edit-color); padding: 5px 8px; font-size: 12px; }
+.btn-calc { background-color: var(--calc-color); font-weight: bold; }
+.btn-print { background-color: #1e293b; }
+.btn-version { background-color: #94a3b8; font-size: 12px; }
+
+input[type="text"], input[type="date"], input[type="number"], select, textarea { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+#modal, #importModal, #versionModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+
+.modal-content-wide { background: white; padding: 25px; border-radius: 12px; width: 650px; max-height: 95vh; overflow-y: auto; }
+.tutorial-box { background: #fdf2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
+
+.form-group { margin-bottom: 18px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: bold; color: #334155; }
+.form-group input, .form-group textarea, .form-group select { width: 100%; box-sizing: border-box; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.checkbox-group { display: flex; flex-direction: column; gap: 8px; background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; }
+.checkbox-label { display: inline-flex; align-items: center; font-weight: normal !important; cursor: pointer; color: #475569 !important; }
+.checkbox-label input { margin-right: 8px; width: 16px; height: 16px; }
+
+.ver-item { margin-bottom: 15px; border-left: 3px solid var(--primary-color); padding-left: 10px; }
+.ver-tag { font-weight: bold; color: var(--primary-color); }
+.ver-date { font-size: 12px; color: #94a3b8; }
+.ver-desc { font-size: 14px; color: #475569; margin-top: 4px; }
+
+@media print {
+@page { size: A4; margin: 0; }
+body { background: white; margin: 1.2cm 1.2cm; padding: 0; }
+.container { box-shadow: none; width: 100% !important; max-width: none !important; padding: 0 !important; }
+.no-print { display: none !important; }
+.col-action { display: none !important; }
+h1 { font-size: 24px; margin-top: 0; }
+tr { page-break-inside: avoid; }
+table { border: 2px solid #000; width: 100% !important; }
+.stamp-box { border-color: #ccc; }
+.tabs-container { display: none; }
+.total-summary { border: none; background: none; padding: 0; }
+body.print-hide-sales .col-sales { display: none !important; }
+}
+</style>
 </head>
 <body>
-  <div class="card">
-    <h1>啤酒陳列費簽收表已更新</h1>
-    <p>正在前往新版系統…</p>
-    <p>若沒有自動跳轉，請點選：<a href="https://vital-beige-1hiikwmiuj.edgeone.app/">開啟新版啤酒陳列費簽收表</a></p>
-  </div>
+
+<div class="container">
+<div class="no-print" style="position:absolute; top:15px; right:15px;">
+<button class="btn btn-version" onclick="showVersionModal()">📜 版本履歷 v4.6</button>
+</div>
+
+<!-- 標題 -->
+<h1 id="mainTitle"><span id="displayYear">2026</span>年 <span id="displayMonth">3</span>月份 龍潭營業所-<span id="displayTitleDistrict">全轄區</span></h1>
+<p class="subtitle no-print">發放標準：一般項目(滿3萬得1箱) / 小型陳列架(滿2萬得0.5箱)</p>
+
+<!-- 轄區標籤 -->
+<div class="tabs-container no-print">
+<button class="tab-btn active" onclick="switchTab('All', this)">全部轄區</button>
+<button class="tab-btn" onclick="switchTab('大溪', this)">大溪區</button>
+<button class="tab-btn" onclick="switchTab('龍潭', this)">龍潭區</button>
+<button class="tab-btn" onclick="switchTab('八德', this)">八德區</button>
+</div>
+
+<!-- 工具列 -->
+<div class="toolbar no-print">
+<div class="toolbar-group">
+<span class="setting-label">發放年月份：</span>
+<select id="yearSelect" onchange="updateHeaderDate()">
+<option value="2025">2025年</option>
+<option value="2026" selected>2026年</option>
+<option value="2027">2027年</option>
+</select>
+<select id="monthSelect" onchange="updateHeaderDate()"></select>
+
+<span class="setting-label" style="margin-left:15px;">調整發放日期：</span>
+<input type="date" id="issueDateInput" onchange="updateTopDate()">
+</div>
+<div class="toolbar-group">
+<button class="btn btn-calc" onclick="showImportModal()">📊 匯入銷售紀錄</button>
+<button class="btn btn-add" onclick="editCustomer(-1)">＋ 新增店家</button>
+<label class="checkbox-label" style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:7px 10px; white-space:nowrap;">
+<input type="checkbox" id="showSalesOnPrint" checked>
+列印顯示業績金額
+</label>
+<button class="btn btn-print" onclick="handlePrint()">🖨️ 列印表單</button>
+</div>
+</div>
+
+<div class="info-header">
+<div class="total-summary">
+本區實領總計：<span id="totalCrates">0</span> 箱
+</div>
+<div>
+發放日期：<span id="topYear">2026</span> / <span id="topMonth">03</span> / <span id="topDay">____</span>
+</div>
+</div>
+
+<table id="customerTable">
+<thead>
+<tr>
+<th class="col-name">店家名稱</th>
+<th class="col-detail">陳列項目明細</th>
+<th class="col-sales">當月業績(含稅)</th>
+<th class="col-count">核發<br><small style="font-weight:normal;">(實領/最高)</small></th>
+<th class="col-stamp" id="stampHeader">客戶店章</th>
+<th class="col-action no-print">操作</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+
+<div class="no-print" style="margin-top: 20px; text-align: right; font-size: 12px; color: #94a3b8;">
+龍潭營業所 啤酒陳列費管理系統 v4.6.20261002
+</div>
+</div>
+
+<!-- 彈出視窗：匯入 -->
+<div id="importModal" class="no-print">
+<div class="modal-content-wide">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+<h3 style="margin:0; color: #1e293b;">📊 匯入銷售紀錄與操作指南</h3>
+<button class="btn" style="background: #e2e8f0; color: #475569;" onclick="document.getElementById('importModal').style.display='none'">✕ 關閉</button>
+</div>
+
+<div class="tutorial-box">
+<div style="font-weight: bold; color: #b91c1c; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+💡 N90 系統撈取步驟說明 (程式代號: N90122)
+</div>
+<ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.8; color: #444;">
+<li>進入 <b>「售貨單查詢二(扣銷退及贈品)」</b> 畫面。</li>
+<li>設定 <b>產品類別</b> 為 <b>「2 啤酒」</b>。</li>
+<li><b>選項一</b> 務必選擇 <b>「● 客戶彙總」</b>。</li>
+<li><b>贈品</b> 選擇 <b>「● 無」</b>；<b>單位</b> 選擇 <b>「● 零單位」</b>。</li>
+<li>點擊 <b>「瀏覽」</b> 後，將資料表全選並複製，貼到下方欄位即可。</li>
+<li><small style="color:#64748b;">系統將自動處理負數(退貨)並計算 1.05 倍含稅金額。</small></li>
+</ul>
+</div>
+
+<div class="form-group">
+<label style="color: #2563eb;">請將 N90 複製的文字資料貼在此處：</label>
+<textarea id="salesDataInput" rows="10" placeholder="貼上包含客戶代號姓名與金額的資料..."></textarea>
+</div>
+<div class="modal-footer">
+<button class="btn" style="background-color: #94a3b8;" onclick="document.getElementById('importModal').style.display='none'">取消</button>
+<button class="btn btn-calc" onclick="processSalesData()">開始智慧結算</button>
+</div>
+</div>
+</div>
+
+<!-- 彈出視窗：編輯 -->
+<div id="modal" class="no-print">
+<div class="modal-content" style="width: 500px; background: white; padding: 30px; border-radius: 12px;">
+<h3 id="modalTitle" style="margin: 0 0 15px 0; color: #1e293b;">編輯店家資料</h3>
+<input type="hidden" id="editIndex">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+<div class="form-group"><label>所屬轄區</label><select id="storeDistrict"><option value="大溪">大溪區</option><option value="龍潭">龍潭區</option><option value="八德">八德區</option></select></div>
+<div class="form-group"><label style="color: #2563eb;">手動核發數量</label><input type="number" id="storeManualCrates" step="0.5" placeholder="自動計算請留空"></div>
+</div>
+<div class="form-group"><label>店家名稱</label><input type="text" id="storeName"></div>
+<div class="form-group"><label>POS ID (代號+姓名)</label><input type="text" id="storePosId"></div>
+<div class="form-group"><label>陳列項目 (最多 2 項)</label>
+<div class="checkbox-group">
+<label class="checkbox-label"><input type="checkbox" name="displayItem" value="落地30箱 (1)"> 落地30箱</label>
+<label class="checkbox-label"><input type="checkbox" name="displayItem" value="一般冰箱 (1)"> 一般冰箱</label>
+<label class="checkbox-label"><input type="checkbox" name="displayItem" value="開放式冰箱 (1)"> 開放式冰箱</label>
+<label class="checkbox-label"><input type="checkbox" name="displayItem" value="端架 (1)"> 端架</label>
+<label class="checkbox-label"><input type="checkbox" name="displayItem" value="小型陳列架 (0.5)"> 小型陳列架</label>
+</div>
+</div>
+<div class="modal-footer"><button class="btn" style="background-color: #94a3b8;" onclick="hideModal()">取消</button><button class="btn btn-add" onclick="saveCustomer()">儲存變更</button></div>
+</div>
+</div>
+
+<!-- 彈出視窗：版本履歷 -->
+<div id="versionModal" class="no-print">
+<div class="modal-content" style="width: 520px; background: white; padding: 30px; border-radius: 12px;">
+<h3 style="margin: 0 0 20px 0; color: #1e293b; display: flex; align-items: center; gap: 10px;">📜 系統版本履歷</h3>
+<div class="ver-item">
+<div class="ver-tag">v4.6 (列印金額顯示控制)</div>
+<div class="ver-date">2026/10/02</div>
+<div class="ver-desc">• 新增「列印顯示業績金額」選項。<br>• 取消勾選後，列印時會隱藏「當月業績(含稅)」整欄，但畫面與計算資料不受影響。</div>
+</div>
+<div class="ver-item">
+<div class="ver-tag">v4.5 (欄位優化)</div>
+<div class="ver-date">2026/05/11</div>
+<div class="ver-desc">• 移除店章欄位固定寬度，釋放空間給「陳列項目明細」，確保 A4 排版不擁擠。<br>• 店章格子改為彈性縮放。</div>
+</div>
+<div class="ver-item">
+<div class="ver-tag">v4.4 (單頁極限版)</div>
+<div class="ver-date">2026/05/11</div>
+<div class="ver-desc">• 強制排版優化：無論何種轄區（含全區 30 筆），均會自動計算最佳縮放比例，確保僅佔用一張 A4。</div>
+</div>
+<div class="ver-item">
+<div class="ver-tag">v4.3 (列印優化)</div>
+<div class="ver-date">2026/05/11</div>
+<div class="ver-desc">• 列印更新：移除業績欄位的 no-print 限制。</div>
+</div>
+<div class="modal-footer"><button class="btn btn-print" onclick="document.getElementById('versionModal').style.display='none'">關閉</button></div>
+</div>
+</div>
+
+<script>
+let customers = [
+// 大溪
+{ district: "大溪", name: "金英豐商店", posId: "111024古育欣", detail: "一般冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "大溪", name: "豐陽商行", posId: "112185郭林水鳳", detail: "小型陳列架 (0.5)", validSales: null, manualCrates: null },
+{ district: "大溪", name: "佑采企業有限公司", posId: "112594邱文松", detail: "落地30箱 (1)、開放式冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "大溪", name: "長圓商行", posId: "112812駱茂盛", detail: "端架 (1)、一般冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "大溪", name: "瑞豐便利商店", posId: "116121黃兆輝", detail: "端架 (1)、一般冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "大溪", name: "泓欣家庭五五商行", posId: "117555蔣紫琳", detail: "一般冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "大溪", name: "岱鈺商店", posId: "118503鍾岱錡", detail: "端架 (1)", validSales: null, manualCrates: null },
+{ district: "大溪", name: "岱京商店", posId: "118547鍾岱錡", detail: "端架 (1)", validSales: null, manualCrates: null },
+{ district: "大溪", name: "八方客商行", posId: "121368陳俊乾", detail: "端架 (1)、一般冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "大溪", name: "仁宇便利商店", posId: "129168黃志宇", detail: "端架 (1)、開放式冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "大溪", name: "兆翔便利商店", posId: "129522黃兆輝", detail: "端架 (1)、開放式冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "大溪", name: "全元商行", posId: "111342李汪元", detail: "落地30箱 (1)", validSales: null, manualCrates: null },
+{ district: "大溪", name: "力隆商行", posId: "111331李汪元", detail: "落地30箱 (1)、開放式冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "大溪", name: "宏元商行", posId: "112754李汪元", detail: "落地30箱 (1)", validSales: null, manualCrates: null },
+
+// 龍潭
+{ district: "龍潭", name: "銘慶商店", posId: "312050黃明順", detail: "落地30箱 (1)、一般冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "龍潭", name: "諾捷股份有限公司", posId: "312685彭天保", detail: "落地30箱 (1)、一般冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "龍潭", name: "欣倫商行", posId: "312732吳柏鋒", detail: "落地30箱 (1)、開放式冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "龍潭", name: "勝鑫生活百貨有限公司", posId: "315424徐俊興", detail: "落地30箱 (1)", validSales: null, manualCrates: null },
+{ district: "龍潭", name: "聖龍商行", posId: "320218陳建松", detail: "一般冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "龍潭", name: "義和商店", posId: "324050黃廖秋桂", detail: "落地30箱 (1)", validSales: null, manualCrates: null },
+{ district: "龍潭", name: "恒久商行", posId: "326192陳永侃", detail: "端架 (1)", validSales: null, manualCrates: null },
+
+// 八德
+{ district: "八德", name: "萬濠商店", posId: "211290楊沛蓁", detail: "落地30箱 (1)", validSales: null, manualCrates: null },
+{ district: "八德", name: "珍虹商行", posId: "216524曾鈴絲", detail: "落地30箱 (1)", validSales: null, manualCrates: null },
+{ district: "八德", name: "大湳商行", posId: "218393邱揚城", detail: "端架 (1)、一般冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "八德", name: "華勤軒有限公司", posId: "231072陳可正", detail: "落地30箱 (1)", validSales: null, manualCrates: null },
+{ district: "八德", name: "盈裕商行有限公司", posId: "237105鄧秀珍", detail: "端架 (1)、一般冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "八德", name: "百暉國際有限公司", posId: "216024黃雅沁", detail: "落地30箱 (1)", validSales: null, manualCrates: null },
+{ district: "八德", name: "泓儒百貨商行", posId: "230217黃泓儒", detail: "落地30箱 (1)、一般冰箱 (1)", validSales: null, manualCrates: null },
+{ district: "八德", name: "浩鈺商行", posId: "220337李德蘭", detail: "落地30箱 (1)", validSales: null, manualCrates: null },
+{ district: "八德", name: "億興商行", posId: "233136黃得厚", detail: "落地30箱 (1)、一般冰箱 (1)", validSales: null, manualCrates: null }
+];
+
+let currentDistrict = 'All';
+let isCalculated = false;
+
+// 強制排版優化：確保所有內容都在一頁 A4 內
+function updateLayoutStyles(rowCount) {
+const root = document.documentElement;
+let idealHeight = 18.5 / Math.max(rowCount, 1);
+
+let finalHeight;
+let fontSize;
+let padding;
+let numFontSize;
+
+if (rowCount > 25) { // 全轄區模式
+finalHeight = Math.max(idealHeight, 0.55);
+fontSize = 11;
+padding = 2;
+numFontSize = 16;
+} else { // 單轄區模式
+finalHeight = Math.min(Math.max(idealHeight, 1.2), 4.1);
+fontSize = 14 + (finalHeight - 1.2) * (5 / 2.9);
+padding = 4 + (finalHeight - 1.2) * (10 / 2.9);
+numFontSize = 22;
+}
+
+root.style.setProperty('--stamp-height', finalHeight + 'cm');
+root.style.setProperty('--font-main', Math.round(fontSize) + 'px');
+root.style.setProperty('--row-padding', Math.round(padding) + 'px');
+root.style.setProperty('--font-number', numFontSize + 'px');
+}
+
+function handlePrint() {
+const originalTitle = document.title;
+const showSales = document.getElementById('showSalesOnPrint').checked;
+
+document.body.classList.toggle('print-hide-sales', !showSales);
+document.title = "";
+
+const cleanupAfterPrint = () => {
+document.body.classList.remove('print-hide-sales');
+document.title = originalTitle;
+window.removeEventListener('afterprint', cleanupAfterPrint);
+};
+
+window.addEventListener('afterprint', cleanupAfterPrint);
+window.print();
+
+setTimeout(() => {
+document.body.classList.remove('print-hide-sales');
+document.title = originalTitle;
+}, 1000);
+}
+
+function switchTab(district, btn) {
+currentDistrict = district;
+document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+btn.classList.add('active');
+const h = document.getElementById('stampHeader');
+if (currentDistrict === 'All') h.classList.add('hidden'); else h.classList.remove('hidden');
+updateHeaderDate(); renderTable();
+}
+
+function updateHeaderDate() {
+document.getElementById('displayYear').innerText = document.getElementById('yearSelect').value;
+document.getElementById('displayMonth').innerText = document.getElementById('monthSelect').value;
+let districtName = (currentDistrict === 'All' ? '全轄區' : currentDistrict + "區");
+document.getElementById('displayTitleDistrict').innerText = districtName;
+}
+
+function updateTopDate() {
+const val = document.getElementById('issueDateInput').value;
+if (!val) return;
+const d = new Date(val);
+document.getElementById('topYear').innerText = d.getFullYear();
+document.getElementById('topMonth').innerText = (d.getMonth() + 1).toString().padStart(2, '0');
+document.getElementById('topDay').innerText = d.getDate().toString().padStart(2, '0');
+}
+
+function calculateAwarded(detail, sales) {
+if (!detail || detail.includes("(無項目)")) return { max: 0, earned: 0 };
+let items = detail.split(/[、,，]/), reg = 0, sm = 0;
+items.forEach(i => { if(i.includes("小型陳列架")) sm++; else reg++; });
+let max = reg + sm * 0.5, earned = 0, temp = Math.max(0, sales);
+for(let i=0; i<reg; i++) { if(temp>=30000){ earned++; temp-=30000; } }
+for(let i=0; i<sm; i++) { if(temp>=20000){ earned+=0.5; temp-=20000; } }
+return { max, earned };
+}
+
+function renderTable() {
+const tbody = document.getElementById('tableBody');
+tbody.innerHTML = '';
+let totalSum = 0;
+const filtered = customers.filter(c => currentDistrict === 'All' || c.district === currentDistrict);
+
+updateLayoutStyles(filtered.length);
+
+filtered.forEach(c => {
+let alloc = calculateAwarded(c.detail, c.validSales || 0);
+let finalEarned = (c.manualCrates !== null) ? c.manualCrates : (isCalculated ? alloc.earned : 0);
+totalSum += finalEarned;
+
+let color = (finalEarned < alloc.max && (isCalculated || c.manualCrates !== null)) ? "#ef4444" : "#1e293b";
+if (c.manualCrates !== null) color = "#2563eb";
+
+let cratesHtml = isCalculated || c.manualCrates !== null ?
+`<span style="color:${color}; font-size:var(--font-number); font-weight:bold;">${finalEarned}</span> <span style="color:#64748b; font-size:14px;">/ ${alloc.max}</span>` :
+`<span style="color:#cbd5e1; font-size:var(--font-number); font-weight:bold;">-</span> <span style="color:#64748b; font-size:14px;">/ ${alloc.max}</span>`;
+
+let salesHtml = isCalculated ? `<span style="font-weight:bold;">$${Math.round(c.validSales || 0).toLocaleString()}</span>` :
+`<span style="color:#cbd5e1; font-size:13px;">尚未匯入</span>`;
+
+const tr = document.createElement('tr');
+const stamp = currentDistrict === 'All' ? '' : `<td class="col-stamp"><div class="stamp-box-container"><div class="stamp-box">蓋章</div></div></td>`;
+tr.innerHTML = `<td>${c.name}<br><small class="no-print" style="color:#94a3b8;">${c.posId}</small></td>
+<td>${c.detail}</td><td class="col-sales">${salesHtml}</td><td>${cratesHtml}</td>
+${stamp}
+<td class="col-action no-print"><button class="btn btn-edit" onclick="editCustomer(${customers.indexOf(c)})">編輯</button></td>`;
+tbody.appendChild(tr);
+});
+document.getElementById('totalCrates').innerText = totalSum;
+}
+
+function showImportModal() { document.getElementById('salesDataInput').value = ''; document.getElementById('importModal').style.display = 'flex'; }
+
+function processSalesData() {
+const text = document.getElementById('salesDataInput').value, salesMap = {};
+text.split('\n').forEach(line => {
+let match = line.trim().match(/^([0-9a-zA-Z]+[\u4e00-\u9fa5]+)\s+(.*)$/);
+if (match) {
+let idName = match[1];
+let rest = match[2].split(/[\t\s]+/).filter(s=>s!=='');
+if (rest.length >= 3) {
+let val = parseFloat(rest[rest.length-3].replace(/,/g,''));
+if(!isNaN(val)) salesMap[idName] = (salesMap[idName] || 0) + val;
+}
+}
+});
+customers.forEach(c => { c.validSales = (salesMap[c.posId] || 0) * 1.05; });
+isCalculated = true; document.getElementById('importModal').style.display = 'none'; renderTable();
+}
+
+function editCustomer(i) {
+const m = document.getElementById('modal'), cbs = document.querySelectorAll('input[name="displayItem"]');
+cbs.forEach(cb => cb.checked = false);
+if(i > -1) {
+document.getElementById('modalTitle').innerText = "編輯店家資料";
+document.getElementById('storeDistrict').value = customers[i].district;
+document.getElementById('storeName').value = customers[i].name;
+document.getElementById('storePosId').value = customers[i].posId;
+document.getElementById('storeManualCrates').value = customers[i].manualCrates !== null ? customers[i].manualCrates : '';
+document.getElementById('editIndex').value = i;
+cbs.forEach(cb => { if(customers[i].detail.includes(cb.value.split(' ')[0])) cb.checked = true; });
+}
+m.style.display = 'flex';
+}
+
+function hideModal() { document.getElementById('modal').style.display = 'none'; }
+function saveCustomer() {
+const i = parseInt(document.getElementById('editIndex').value), items = Array.from(document.querySelectorAll('input[name="displayItem"]:checked')).map(cb => cb.value), mVal = document.getElementById('storeManualCrates').value;
+const data = { district: document.getElementById('storeDistrict').value, name: document.getElementById('storeName').value, posId: document.getElementById('storePosId').value, detail: items.join('、') || '(無項目)', validSales: i > -1 ? customers[i].validSales : null, manualCrates: (mVal !== "") ? parseFloat(mVal) : null };
+if(i > -1) customers[i] = data; else customers.push(data);
+hideModal(); renderTable();
+}
+
+window.onload = () => {
+const ms = document.getElementById('monthSelect');
+for(let i=1; i<=12; i++) ms.add(new Option(i + '月', i));
+const today = new Date(), lm = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+document.getElementById('yearSelect').value = lm.getFullYear();
+ms.value = lm.getMonth() + 1;
+document.getElementById('issueDateInput').valueAsDate = today;
+updateHeaderDate(); updateTopDate(); renderTable();
+};
+</script>
 </body>
 </html>
